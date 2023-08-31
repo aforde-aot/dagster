@@ -35,7 +35,7 @@ dagsterWebserver:
     # When a tag is not supplied for a Dagster provided image,
     # it will default as the Helm chart version.
     repository: "docker.io/dagster/dagster-celery-k8s"
-    tag: ~
+    tag: latest
     pullPolicy: Always
 
   # Support overriding the name prefix of the webserver pods
@@ -48,7 +48,7 @@ dagsterWebserver:
     type: ClusterIP
     # Defines the port where the webserver will serve requests; if changed, don't forget to update the
     # livenessProbe and startupProbe entries below as well.
-    port: 80
+    port: 8080
     annotations: {}
 
   # Defines a workspace for the webserver. This should only be set if user deployments are enabled, but
@@ -61,9 +61,9 @@ dagsterWebserver:
     # List of servers to include in the workflow file. When set,
     # `externalConfigmap` must be empty.
     servers:
-      - host: "k8s-example-user-code-1"
+      - host: "dagster-etl"
         port: 3030
-        name: "user-code-example"
+        name: "dagster-etl"
 
     # Defines the name of a configmap provisioned outside of the
     # Helm release to use as workspace file. When set, `servers`
@@ -180,7 +180,7 @@ dagsterWebserver:
   readinessProbe:
     httpGet:
       path: "/server_info"
-      port: 80
+      port: 8080
     periodSeconds: 20
     timeoutSeconds: 10
     successThreshold: 1
@@ -281,11 +281,11 @@ dagster-user-deployments:
 
   # List of unique deployments
   deployments:
-    - name: "k8s-example-user-code-1"
+    - name: "etl"
       image:
         # When a tag is not supplied, it will default as the Helm chart version.
-        repository: "docker.io/dagster/user-code-example"
-        tag: ~
+        repository: "image-registry.openshift-image-registry.svc:5000/c72cba-tools/dagster-etl"
+        tag: latest
 
         # Change with caution! If you're using a fixed tag for pipeline run images, changing the
         # image pull policy to anything other than "Always" will use a cached/stale image, which is
@@ -306,8 +306,10 @@ dagster-user-deployments:
       # identical arguments but can reload its definitions from within the Dagster UI without
       # needing to restart the user code deployment pod.
       dagsterApiGrpcArgs:
+        - "-d"
+        - "/etl_project/services"
         - "--python-file"
-        - "/example_project/example_repo/repo.py"
+        - "/etl_project/services/repo.py"
       port: 3030
 
       # Whether or not to include configuration specified for this user code deployment in the pods
@@ -344,8 +346,8 @@ dagster-user-deployments:
       #
       # envSecrets:
       #   - name: secret
-      envSecrets: []
-
+      envSecrets:
+        - name: met-dagster
       # Additional labels that should be included. See:
       # https://kubernetes.io/docs/concepts/overview/working-with-objects/labels
       #
@@ -420,8 +422,8 @@ pipelineRun:
   image:
     # When a tag is not supplied for a Dagster provided image,
     # it will default as the Helm chart version.
-    repository: "docker.io/dagster/user-code-example"
-    tag: ~
+    repository: "docker.io/dagster/dagster-etl"
+    tag: latest
     pullPolicy: Always
 
   # Additional environment variables to set.
@@ -600,7 +602,7 @@ runLauncher:
         # When a tag is not supplied for a Dagster provided image,
         # it will default as the Helm chart version.
         repository: "docker.io/dagster/dagster-celery-k8s"
-        tag: ~
+        tag: latest
         pullPolicy: Always
 
       # The Kubernetes namespace where new jobs will be launched.
@@ -755,7 +757,7 @@ runLauncher:
 postgresql:
   # set postgresql.enabled to be false to disable deploy of a PostgreSQL database and use an
   # existing external PostgreSQL database
-  enabled: true
+  enabled: false
 
   # Used by init container to check that db is running. (Even if enabled:false)
   image:
@@ -764,16 +766,16 @@ postgresql:
     pullPolicy: IfNotPresent
 
   # set this PostgreSQL hostname when using an external PostgreSQL database
-  postgresqlHost: ""
+  postgresqlHost: "met-patroni"
 
-  postgresqlUsername: test
+  postgresqlUsername: dagster
 
   # Note when changing this password (e.g. in test) that credentials will
   # persist as long as the PVCs do -- see:
   # https://github.com/helm/charts/issues/12836#issuecomment-524552358
-  postgresqlPassword: test
+  postgresqlPassword: '0%mkd7U2o1eg$*V'
 
-  postgresqlDatabase: test
+  postgresqlDatabase: app
 
   # set postgresql parameter keywords for the connection string.
   # see: https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-PARAMKEYWORDS
@@ -1050,7 +1052,7 @@ dagsterDaemon:
     # When a tag is not supplied for a Dagster provided image,
     # it will default as the Helm chart version.
     repository: "docker.io/dagster/dagster-celery-k8s"
-    tag: ~
+    tag: latest
     pullPolicy: Always
 
   heartbeatTolerance: 300
@@ -1287,7 +1289,7 @@ migrate:
 # https://docs.dagster.io/getting-started/telemetry
 ####################################################################################################
 telemetry:
-  enabled: true
+  enabled: false
 
 serviceAccount:
   create: true

@@ -9,9 +9,9 @@ metadata:
 rules:
   - apiGroups: ["batch"]
     resources: ["jobs", "jobs/status"]
-    verbs: ["*"]
+    verbs: ["get", "list", "watch"]
   # The empty arg "" corresponds to the core API group
   - apiGroups: [""]
     resources: ["pods", "pods/log", "pods/status", "events"]
-    verbs: ["*"]
+    verbs: ["get", "list", "watch"]
 {{- end -}}
